@@ -9,7 +9,7 @@ from lambdas.app_role_bo import AppRoleBO
 from app_common.base_lambda_handler import BaseLambdaHandler
 
 
-class AppRoleRetriever(BaseLambdaHandler):
+class KnowledgeRetriever(BaseLambdaHandler):
     """
     This class is responsible for
     """
@@ -36,7 +36,7 @@ class AppRoleRetriever(BaseLambdaHandler):
         # Publish the response to the event bus
         self.publish_to_custom_event_bus(
             message=payload,
-            detail_type="AppRoleRetrieved",
+            detail_type="KnowledgeRetrieved",
         )
 
         return payload
@@ -44,9 +44,9 @@ class AppRoleRetriever(BaseLambdaHandler):
 
 def handler(event, context):
     """
-    Lambda function to route messages from the multi-channel SQS queue to the appropriate handler.
+    Lambda function to 
     """
-    _handler = AppRoleRetriever()
+    _handler = KnowledgeRetriever()
     # Implicitly invokes __call__() ...
     #   ... which invokes _do_the_job() ...
     #     ... which invokes before_handle(), handle() and after_handle()
