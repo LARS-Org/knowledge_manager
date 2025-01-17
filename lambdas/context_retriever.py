@@ -9,7 +9,7 @@ from lambdas.app_role_bo import AppRoleBO
 from app_common.base_lambda_handler import BaseLambdaHandler
 
 
-class KnowledgeRetriever(BaseLambdaHandler):
+class ContextRetriever(BaseLambdaHandler):
     """
     This class is responsible for
     """
@@ -36,7 +36,7 @@ class KnowledgeRetriever(BaseLambdaHandler):
         # Publish the response to the event bus
         self.publish_to_custom_event_bus(
             message=payload,
-            detail_type="KnowledgeRetrieved",
+            detail_type="ContextRetrieved",
         )
 
         return payload
@@ -46,7 +46,7 @@ def handler(event, context):
     """
     Lambda function to 
     """
-    _handler = KnowledgeRetriever()
+    _handler = ContextRetriever()
     # Implicitly invokes __call__() ...
     #   ... which invokes _do_the_job() ...
     #     ... which invokes before_handle(), handle() and after_handle()
