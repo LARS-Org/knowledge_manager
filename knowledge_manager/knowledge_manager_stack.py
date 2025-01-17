@@ -1,5 +1,6 @@
 from aws_cdk import (
     aws_dynamodb as dynamodb,
+    aws_sns_subscriptions as sns_subscriptions,
 )
 from constructs import Construct
 
@@ -22,10 +23,10 @@ class KnowledgeManagerStack(AppCommonStack):
             pk_type=dynamodb.AttributeType.STRING,
         )
 
-        # Create a lambda, using the method self._create_lambda, responsible 
+        # Create a lambda, using the method self._create_lambda, responsible
         # for retrieve the AppRole registered for the app_id
         # The lambda will be named "AppRoleRetriever"
-        self._create_lambda(
+        klg_retriever_lambda = self._create_lambda(
             name="KnowledgeRetrieverLambda",
             handler="knowledge_retriever.handler",
             environment={
@@ -33,8 +34,15 @@ class KnowledgeManagerStack(AppCommonStack):
             },
         )
 
+        # Grant to lambda function full access to the table
+        app_role_table.grant_full_access(klg_retriever_lambda)
 
+        # Create SNS topic "KnowledgeManager-AppToHaveKLGRetrieved"
+        app_to_have_klg_retrieved_topic = self._create_sns_topic(
+            topic_name="KnowledgeManager-AppToHaveKLGRetrieved",
+        )
 
-        
-
-
+        # Add a subscription to the topic to trigger the lambda function
+        app_to_have_klg_retrieved_topic.add_subscription(
+            sns_subscriptions.LambdaSubscription(klg_retriever_lambda)
+        )
