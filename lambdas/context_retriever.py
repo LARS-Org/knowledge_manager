@@ -5,7 +5,7 @@ import sys
 # This must be done before importing any modules from the packages directory.
 sys.path.append(os.path.join(os.path.dirname(__file__), "packages"))
 
-from lambdas.app_role_bo import AppRoleBO
+from app_role_bo import AppRoleBO
 from app_common.base_lambda_handler import BaseLambdaHandler
 
 
