@@ -50,7 +50,12 @@ class AppRoleBO(DynamoDBBase):
         if not role_source:
             return None
 
-        return self._load_url_content_as_text(role_source)
+        if role_source.startswith("http"):
+            # The role source is an HTTP URL, so we need read it
+            return self._load_url_content_as_text(role_source)
+
+        # else: return as is (Native Role Source)
+        return role_source
 
     @lru_cache(maxsize=128)
     def get_role_source(self, app_id: str) -> str:
