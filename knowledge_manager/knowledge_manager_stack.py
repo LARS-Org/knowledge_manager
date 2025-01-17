@@ -26,8 +26,8 @@ class KnowledgeManagerStack(AppCommonStack):
         # for retrieve the AppRole registered for the app_id
         # The lambda will be named "AppRoleRetriever"
         self._create_lambda(
-            name="AppRoleRetrieverLambda",
-            handler="app_role_retriever.handler",
+            name="KnowledgeRetrieverLambda",
+            handler="knowledge_retriever.handler",
             environment={
                 "APP_ROLE_TABLE_NAME": app_role_table.table_name,
             },
