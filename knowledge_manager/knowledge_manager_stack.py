@@ -23,26 +23,23 @@ class KnowledgeManagerStack(AppCommonStack):
             pk_type=dynamodb.AttributeType.STRING,
         )
 
-        # Create a lambda, using the method self._create_lambda, responsible
-        # for retrieve the AppRole registered for the app_id
-        # The lambda will be named "AppRoleRetriever"
-        klg_retriever_lambda = self._create_lambda(
-            name="KnowledgeRetrieverLambda",
-            handler="knowledge_retriever.handler",
+        context_retriever_lambda = self._create_lambda(
+            name="ContextRetrieverLambda",
+            handler="context_retriever.handler",
             environment={
                 "APP_ROLE_TABLE_NAME": app_role_table.table_name,
             },
         )
 
         # Grant to lambda function full access to the table
-        app_role_table.grant_full_access(klg_retriever_lambda)
+        app_role_table.grant_full_access(context_retriever_lambda)
 
-        # Create SNS topic "KnowledgeManager-AppToHaveKLGRetrieved"
-        app_to_have_klg_retrieved_topic = self._create_sns_topic(
-            topic_name="KnowledgeManager-AppToHaveKLGRetrieved",
+        # Create SNS topic "KnowledgeManager-ContextToBeRetrieved"
+        context_tobe_retrieved_topic = self._create_sns_topic(
+            topic_name="KnowledgeManager-ContextToBeRetrieved",
         )
 
         # Add a subscription to the topic to trigger the lambda function
-        app_to_have_klg_retrieved_topic.add_subscription(
-            sns_subscriptions.LambdaSubscription(klg_retriever_lambda)
+        context_tobe_retrieved_topic.add_subscription(
+            sns_subscriptions.LambdaSubscription(context_retriever_lambda)
         )
