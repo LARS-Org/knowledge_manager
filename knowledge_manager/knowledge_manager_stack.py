@@ -61,17 +61,27 @@ class KnowledgeManagerStack(AppCommonStack):
             pk_type=dynamodb.AttributeType.STRING,
         )
 
+        user_long_term_memory_table = self._create_dynamodb_table(
+            table_name="UserLongTermMemoryTable",
+            pk_name="user_id",
+            pk_type=dynamodb.AttributeType.STRING,
+            sk_name="timestamp",
+            sk_type=dynamodb.AttributeType.NUMBER, # Unix Epoch representation
+        )
+
         # Lambda function for retrieving context, with an environment variable for the table name.
         context_retriever_lambda = self._create_lambda(
             name="ContextRetrieverLambda",
             handler="context_retriever.handler",
             environment={
                 "APP_ROLE_TABLE_NAME": app_role_table.table_name,
+                "USER_LONG_TERM_MEMORY_TABLE_NAME": user_long_term_memory_table.table_name
             },
         )
 
-        # Grant the Lambda function full access to the DynamoDB table.
+        # Grant the Lambda function full access to the DynamoDB tables.
         app_role_table.grant_full_access(context_retriever_lambda)
+        user_long_term_memory_table.grant_full_access(context_retriever_lambda)
 
         # Create an SNS topic named "KnowledgeManager-ContextToBeRetrieved".
         context_tobe_retrieved_topic = self._create_sns_topic(
