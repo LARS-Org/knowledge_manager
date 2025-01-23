@@ -17,6 +17,7 @@ Environment Variables:
 Raises:
     ValueError: If app_id is missing or app role cannot be found
 """
+
 import os
 import sys
 
@@ -25,13 +26,14 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "packages"))
 
 from app_role_bo import AppRoleBO
+from long_memory_bo import UserLongTermMemoryBO
 from app_common.base_lambda_handler import BaseLambdaHandler
 
 
 class ContextRetriever(BaseLambdaHandler):
     """
     A Lambda handler for retrieving context based on the provided app_id.
-    
+
     This class processes incoming events, validates inputs, retrieves app role content
     from the database, and publishes the results to a custom event bus.
     """
@@ -57,6 +59,30 @@ class ContextRetriever(BaseLambdaHandler):
 
         if not app_role:
             raise ValueError(f"AppRole not found for app_id: {app_id}")
+
+        # Retrieve the UserLongTermMemory table name from the environment variables.
+        user_long_term_memory_table_name = self.get_env_var(
+            "USER_LONG_TERM_MEMORY_TABLE_NAME"
+        )
+        user_long_term_memory_bo = UserLongTermMemoryBO(
+            table_name=user_long_term_memory_table_name
+        )
+
+        # Fetch the user long-term memory content using the user_id
+        user_id = self.body.get("cbf_user_uuid")
+
+        if not user_id:
+            raise ValueError("user_id is required")
+
+        user_long_term_memory = user_long_term_memory_bo.get_last_memory(
+            user_id=user_id
+        )
+
+        if not user_long_term_memory:
+            # it's the first interaction
+            user_long_term_memory = user_long_term_memory_bo.add_memory(
+                user_id=user_id, memory="fool and useless memory"
+            )
 
         # Include the retrieved app role in the response payload.
         payload = {**self.body, "app_role": app_role}
