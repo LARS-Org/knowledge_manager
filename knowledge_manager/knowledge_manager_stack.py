@@ -3,6 +3,7 @@ KnowledgeManagerStack manages knowledge-based AWS resources.
 
 This stack creates and configures:
 - DynamoDB table for storing app roles and their sources
+- DynamoDB table for storing the user long-term memory
 - Lambda function for retrieving context
 - SNS topic for triggering context retrieval
 - Subscription between SNS topic and Lambda
@@ -11,6 +12,11 @@ The DynamoDB table (AppRoleTable-v1) has:
 - Partition key: app_id (STRING)
 - Sort key: source_type
 - Additional attribute: source
+
+The DynamoDB table (UserLongTermMemoryTable) has:
+- Partition Key: user_id (STRING)
+- Sort key: timestamp (NUMBER)
+- Additional attribute: memory
 
 The Lambda function (ContextRetrieverLambda):
 - Is triggered by SNS notifications
@@ -26,6 +32,7 @@ Dependencies:
 - aws_cdk.aws_sns_subscriptions
 - app_common.app_common_stack.AppCommonStack
 """
+
 from aws_cdk import (
     aws_dynamodb as dynamodb,
     aws_sns_subscriptions as sns_subscriptions,
@@ -37,7 +44,7 @@ from app_common.app_common_stack import AppCommonStack
 
 class KnowledgeManagerStack(AppCommonStack):
     """
-    A stack to manage knowledge-based resources, such as DynamoDB tables, SNS topics, 
+    A stack to manage knowledge-based resources, such as DynamoDB tables, SNS topics,
     and their associated Lambda functions.
     """
 
@@ -51,22 +58,22 @@ class KnowledgeManagerStack(AppCommonStack):
         """
         super().__init__(scope, construct_id, **kwargs)
 
-        # Create a DynamoDB table using the self._create_dynamodb_table method.
-        # The table will be named "AppRoleTable-v1".
-        # Partition key: app_id (type: STRING)
-        # The table includes an attribute "role_source" to persist the source of the role itself.
+        # This table includes an attribute "role_source" to persist 
+        # the source of the role itself.
         app_role_table = self._create_dynamodb_table(
             table_name="AppRoleTable-v1",
             pk_name="app_id",
             pk_type=dynamodb.AttributeType.STRING,
         )
 
+        # This table includes an attribute named "memory" to persist
+        # the user long-term memory version
         user_long_term_memory_table = self._create_dynamodb_table(
             table_name="UserLongTermMemoryTable",
             pk_name="user_id",
             pk_type=dynamodb.AttributeType.STRING,
             sk_name="timestamp",
-            sk_type=dynamodb.AttributeType.NUMBER, # Unix Epoch representation
+            sk_type=dynamodb.AttributeType.NUMBER,  # Unix Epoch representation
         )
 
         # Lambda function for retrieving context, with an environment variable for the table name.
@@ -75,7 +82,7 @@ class KnowledgeManagerStack(AppCommonStack):
             handler="context_retriever.handler",
             environment={
                 "APP_ROLE_TABLE_NAME": app_role_table.table_name,
-                "USER_LONG_TERM_MEMORY_TABLE_NAME": user_long_term_memory_table.table_name
+                "USER_LONG_TERM_MEMORY_TABLE_NAME": user_long_term_memory_table.table_name,
             },
         )
 
