@@ -1,21 +1,9 @@
 """
-Lambda function for retrieving app role context based on user_id.
+Lambda function for updating a user's long-term memory using AI-generated summaries.
 
-This module provides functionality to:
-- Process incoming requests containing an user_id
-- Validate the user_id input
-- Retrieve corresponding app role content from DynamoDB
-- Publish the results to a custom event bus
-
-The module exposes:
-- ContextRetriever: Main Lambda handler class for processing requests
-- handler: Lambda entry point function
-
-Environment Variables:
-    APP_ROLE_TABLE_NAME: Name of the DynamoDB table containing app roles
-
-Raises:
-    ValueError: If user_id is missing or app role cannot be found
+This function processes incoming events to retrieve user data, updates the user's
+long-term memory with AI-generated content, and logs the process. It relies on
+external services and utilities for AI processing, logging, and database interactions.
 """
 
 import json
@@ -27,22 +15,28 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "packages"))
 
 from app_common.app_utils import http_request
-from app_role_bo import AppRoleBO
 from long_memory_bo import UserLongTermMemoryBO
 from app_common.base_lambda_handler import BaseLambdaHandler
 
 
 class LongMemoryUpdater(BaseLambdaHandler):
     """
-    A Lambda handler for retrieving context based on the provided user_id.
-
-    This class processes incoming events, validates inputs, retrieves app role content
-    from the database, and publishes the results to a custom event bus.
+    A Lambda handler for updating the long-term memory of a user
+    based on the interaction between a user and a chatbot.
     """
 
     def __gen_prompt_input_msg(
         self, current_summary: str, user_message: str, chatbot_response: str
-    ):
+    ) -> str:
+        """
+        Generate a prompt for the AI model based on the current summary,
+        the user's message, and the chatbot's response.
+
+        :param current_summary: The existing conversation summary.
+        :param user_message: The latest message from the user.
+        :param chatbot_response: The chatbot's response to the user's message.
+        :return: A formatted string prompt for the AI model.
+        """
         return f"""### Current Summary:
         {current_summary}
         
@@ -51,6 +45,11 @@ class LongMemoryUpdater(BaseLambdaHandler):
         Chatbot: {chatbot_response}"""
 
     def __get_assistant_behaviour(self) -> str:
+        """
+        Provide the AI assistant's behavior instructions for updating the conversation summary.
+
+        :return: A string detailing the assistant's behavior and task.
+        """
         return """You are an AI assistant responsible for maintaining a concise and accurate summary of a conversation.
         The summary should include ONLY ESSENTIAL facts, unresolved issues, user preferences, user personal information, or other important details that improve future interactions.
 
@@ -65,24 +64,25 @@ class LongMemoryUpdater(BaseLambdaHandler):
 
     def _handle(self) -> dict:
         """
-        Handle the incoming request, retrieve the app role, and publish the response.
+        Handle the incoming request to update the user's long-term memory.
 
         :return: A dictionary containing the app role and the original payload.
-        :raises ValueError: If `user_id` is not provided or the app role cannot be found.
+        :raises ValueError: If required parameters are missing.
         """
-        user_id = self.body.get("cbf_user_uuid", None)
+        # Extract required data from the event body
+        user_id = self.body.get("cbf_user_uuid")
         if not user_id:
             raise ValueError("cbf_user_uuid is required")
 
-        user_msg = self.body.get("user_message", None)
+        user_msg = self.body.get("user_message")
         if not user_msg:
             raise ValueError("user_message is required")
 
-        bot_msg = self.body.get("bot_message", None)
+        bot_msg = self.body.get("bot_message")
         if not bot_msg:
             raise ValueError("bot_message is required")
 
-        # Retrieve the UserLongTermMemory table name from the environment variables.
+        # Retrieve the UserLongTermMemory table name from the environment variables
         user_long_term_memory_table_name = self.get_env_var(
             "USER_LONG_TERM_MEMORY_TABLE_NAME"
         )
@@ -90,7 +90,7 @@ class LongMemoryUpdater(BaseLambdaHandler):
             table_name=user_long_term_memory_table_name
         )
 
-        last_memory_content = self.body.get("user_long_term_memory", None)
+        last_memory_content = self.body.get("user_long_term_memory")
 
         # Prepare the AI job payload
         ai_job = {
@@ -115,7 +115,7 @@ class LongMemoryUpdater(BaseLambdaHandler):
             url=ai_job_service_url, method="POST", json_data=ai_job
         )
 
-        # Extract the chatbot-generated message from the response
+        # Extract the AI-generated summary from the response
         if "body" not in ai_job_result or ai_job_result["body"].get("output") is None:
             raise RuntimeError(f"Error while processing the message: {ai_job_result}")
 
@@ -125,6 +125,7 @@ class LongMemoryUpdater(BaseLambdaHandler):
 
         new_memory_content = ai_job_result["summary"]
 
+        # Update the user's long-term memory in the database
         last_memory_content = user_long_term_memory_bo.add_memory(
             user_id=user_id, memory=new_memory_content
         )
@@ -133,7 +134,7 @@ class LongMemoryUpdater(BaseLambdaHandler):
             title=f"New memory updated for the user {user_id}", obj=new_memory_content
         )
 
-        # nothing do return
+        # No return value is required as the function completes its updates
 
 
 def handler(event, context):
@@ -145,7 +146,5 @@ def handler(event, context):
     :return: The result from processing the event.
     """
     _handler = LongMemoryUpdater()
-    # Implicitly invokes __call__(), which:
-    #   - Executes _do_the_job(), which:
-    #       - Calls before_handle(), handle(), and after_handle() methods.
+    # Invokes the BaseLambdaHandler logic chain
     return _handler(event, context)
