@@ -69,11 +69,9 @@ class KnowledgeManagerStack(AppCommonStack):
         # This table includes an attribute named "memory" to persist
         # the user long-term memory version
         user_long_term_memory_table = self._create_dynamodb_table(
-            table_name="UserLongTermMemoryTable",
+            table_name="UserLongTermMemoryTable-v1",
             pk_name="user_id",
             pk_type=dynamodb.AttributeType.STRING,
-            sk_name="timestamp",
-            sk_type=dynamodb.AttributeType.NUMBER,  # Unix Epoch representation
         )
 
         # Lambda function for retrieving context, with an environment variable for the table name.
