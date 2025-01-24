@@ -18,6 +18,7 @@ Raises:
     ValueError: If user_id is missing or app role cannot be found
 """
 
+import json
 import os
 import sys
 
@@ -51,7 +52,7 @@ class LongMemoryUpdater(BaseLambdaHandler):
 
     def __get_assistant_behaviour(self) -> str:
         return """You are an AI assistant responsible for maintaining a concise and accurate summary of a conversation.
-        The summary should include only essential facts, unresolved issues, user preferences, or other important details that improve future interactions.
+        The summary should include ONLY ESSENTIAL facts, unresolved issues, user preferences, user personal information, or other important details that improve future interactions.
 
         ### Task:
         1. Determine if the new message is relevant to the current summary (e.g., it introduces new facts, updates existing details, or addresses unresolved issues).
@@ -104,10 +105,6 @@ class LongMemoryUpdater(BaseLambdaHandler):
             },
         }
 
-        # ai_job["input"]["context"] = {
-        #     "previous_messages": previous_messages,
-        # }
-
         # Retrieve the AI job service URL from an SSM parameter
         ai_job_service_url = self.get_ssm_parameter_cached(
             self.get_env_var("AI_JOB_SERVICE_URL_SSM_FULL_PATH")
@@ -122,13 +119,19 @@ class LongMemoryUpdater(BaseLambdaHandler):
         if "body" not in ai_job_result or ai_job_result["body"].get("output") is None:
             raise RuntimeError(f"Error while processing the message: {ai_job_result}")
 
-        new_memory = ai_job_result["body"]["output"]
+        ai_job_result = json.loads(ai_job_result["body"]["output"])
+
+        self.do_log(ai_job_result, "AI Response")
+
+        new_memory_content = ai_job_result["summary"]
 
         last_memory_content = user_long_term_memory_bo.add_memory(
-            user_id=user_id, memory=new_memory
+            user_id=user_id, memory=new_memory_content
         )
 
-        self.do_log(f"New memory updated for the user {user_id}", new_memory)
+        self.do_log(
+            title=f"New memory updated for the user {user_id}", obj=new_memory_content
+        )
 
         # nothing do return
 
