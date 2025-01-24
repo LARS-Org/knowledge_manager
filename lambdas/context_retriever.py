@@ -78,14 +78,17 @@ class ContextRetriever(BaseLambdaHandler):
             user_id=user_id
         )
 
-        if not user_long_term_memory:
-            # it's the first interaction
-            user_long_term_memory = user_long_term_memory_bo.add_memory(
-                user_id=user_id, memory="fool and useless memory"
-            )
+        last_memory_content = None
+
+        if user_long_term_memory:
+            last_memory_content = user_long_term_memory["memory"]
 
         # Include the retrieved app role in the response payload.
-        payload = {**self.body, "app_role": app_role}
+        payload = {
+            **self.body,
+            "app_role": app_role,
+            "user_long_term_memory": last_memory_content,
+        }
 
         # Publish the response to the custom event bus.
         self.publish_to_custom_event_bus(
