@@ -43,20 +43,20 @@ class UserLongTermMemoryBO(DynamoDBBase):
     """
 
     @lru_cache
-    def get_last_memory(self, user_id: str) -> str:
+    def get_last_memory(self, user_id: str) -> UserLongTermMemory:
         """
         Retrieves the role content for the specified application.
 
         :param user_id: Identifier for the application.
-        :return: Content of the role source as a string, or None if not found.
+        :return: Memory as a UserLongTermMemory object, or None if not found.
         """
         response = self._get_last_items_by_key(
             key_name="user_id", key_value=user_id, k=1
         )
         if not response:  # response is expected to be a list
             return None
-
-        return response[0].get("memory")
+        # else: there is memory
+        return response[0]
 
     def add_memory(self, user_id: str, memory: str) -> UserLongTermMemory:
         """

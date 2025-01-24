@@ -58,7 +58,7 @@ class KnowledgeManagerStack(AppCommonStack):
         """
         super().__init__(scope, construct_id, **kwargs)
 
-        # This table includes an attribute "role_source" to persist 
+        # This table includes an attribute "role_source" to persist
         # the source of the role itself.
         app_role_table = self._create_dynamodb_table(
             table_name="AppRoleTable-v1",
@@ -86,16 +86,52 @@ class KnowledgeManagerStack(AppCommonStack):
             },
         )
 
+        # Lambda function for updating the user long-term memory.
+        user_long_term_memory_updater_lambda = self._create_lambda(
+            name="UserLongTermMemoryUpdaterLambda",
+            handler="long_memory_updater.handler",
+            environment={
+                "USER_LONG_TERM_MEMORY_TABLE_NAME": user_long_term_memory_table.table_name,
+            },
+        )
+
         # Grant the Lambda function full access to the DynamoDB tables.
         app_role_table.grant_full_access(context_retriever_lambda)
-        user_long_term_memory_table.grant_full_access(context_retriever_lambda)
+        user_long_term_memory_table.grant_read_data(context_retriever_lambda)
+        user_long_term_memory_table.grant_full_access(
+            user_long_term_memory_updater_lambda
+        )
 
         # Create an SNS topic named "KnowledgeManager-ContextToBeRetrieved".
         context_tobe_retrieved_topic = self._create_sns_topic(
             topic_name="KnowledgeManager-ContextToBeRetrieved",
         )
 
+        # Create an SNS topic named "KnowledgeManager-MemoryToBeUpdated"
+        memory_tobe_updated_topic = self._create_sns_topic(
+            topic_name="KnowledgeManager-MemoryToBeUpdated",
+        )
+
         # Add a subscription to the topic to trigger the Lambda function.
         context_tobe_retrieved_topic.add_subscription(
             sns_subscriptions.LambdaSubscription(context_retriever_lambda)
+        )
+
+        memory_tobe_updated_topic.add_subscription(
+            sns_subscriptions.LambdaSubscription(user_long_term_memory_updater_lambda)
+        )
+
+        # Define the SSM parameter for the AI Job Service URL
+        ai_job_service_url_ssm_full_path = "/global/NewAIJobAPIURL"
+
+        # Add the SSM parameter as an environment variable to the Lambda function
+        user_long_term_memory_updater_lambda.add_environment(
+            key="AI_JOB_SERVICE_URL_SSM_FULL_PATH",
+            value=ai_job_service_url_ssm_full_path,
+        )
+
+        # Grant the Lambda function permission to read the SSM parameter
+        self._grant_ssm_parameter_access(
+            lambda_function=user_long_term_memory_updater_lambda,
+            param_full_path=ai_job_service_url_ssm_full_path,
         )
