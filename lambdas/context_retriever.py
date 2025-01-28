@@ -51,15 +51,17 @@ class ContextRetriever(BaseLambdaHandler):
             raise ValueError("app_id is required")
 
         # Retrieve the AppBehaviour table name from the environment variables.
+        app_behaviour_table_name = self.get_env_var("APP_BEHAVIOUR_TABLE_NAME")
         app_behaviour_bo = AppBehaviourBO(
-            table_name=self.get_env_var("APP_BEHAVIOUR_TABLE_NAME")
+            table_name=app_behaviour_table_name
             )
 
         # Fetch the app behaviour content using the app_id.
         app_behaviour = app_behaviour_bo.get_behaviour_content(app_id=app_id)
 
         if not app_behaviour:
-            raise ValueError(f"AppBehaviour not found for app_id: {app_id}")
+            raise ValueError(f"AppBehaviour not found for app_id: {app_id}.\n"
+                             f"You must add it in the table `{app_behaviour_table_name}`")
 
         # Retrieve the UserLongTermMemory table name from the environment variables.
         user_long_term_memory_table_name = self.get_env_var(
