@@ -122,17 +122,11 @@ class LongMemoryUpdater(BaseLambdaHandler):
 
         ai_job_result = json.loads(ai_job_result["body"]["output"])
 
-        self.do_log(ai_job_result, "AI Response")
-
         new_memory_content = ai_job_result["summary"]
 
         # Update the user's long-term memory in the database
         new_memory = user_long_term_memory_bo.add_memory(
             user_id=user_id, memory=new_memory_content
-        )
-
-        self.do_log(
-            title=f"New memory updated for the user {user_id}", obj=new_memory_content
         )
 
         payload = {
@@ -144,6 +138,10 @@ class LongMemoryUpdater(BaseLambdaHandler):
         self.publish_to_custom_event_bus(
             message=payload,
             detail_type="MemoryUpdated",
+        )
+
+        self.do_log(
+            title="User memory updated", obj=payload
         )
 
         return payload
