@@ -45,7 +45,7 @@ class UserLongTermMemoryBO(DynamoDBBase):
     @lru_cache
     def get_last_memory(self, user_id: str) -> UserLongTermMemory:
         """
-        Retrieves the role content for the specified application.
+        Retrieves the behaviour content for the specified application.
 
         :param user_id: Identifier for the application.
         :return: Memory as a UserLongTermMemory object, or None if not found.

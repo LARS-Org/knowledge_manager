@@ -2,16 +2,15 @@
 KnowledgeManagerStack manages knowledge-based AWS resources.
 
 This stack creates and configures:
-- DynamoDB table for storing app roles and their sources
+- DynamoDB table for storing app behaviour and their sources
 - DynamoDB table for storing the user long-term memory
 - Lambda function for retrieving context
 - SNS topic for triggering context retrieval
 - Subscription between SNS topic and Lambda
 
-The DynamoDB table (AppRoleTable-v1) has:
+The DynamoDB table (AppBehaviourTable) has:
 - Partition key: app_id (STRING)
-- Sort key: source_type
-- Additional attribute: source
+- Additional attribute: behaviour source
 
 The DynamoDB table (UserLongTermMemoryTable) has:
 - Partition Key: user_id (STRING)
@@ -58,10 +57,10 @@ class KnowledgeManagerStack(AppCommonStack):
         """
         super().__init__(scope, construct_id, **kwargs)
 
-        # This table includes an attribute "role_source" to persist
-        # the source of the role itself.
-        app_role_table = self._create_dynamodb_table(
-            table_name="AppRoleTable-v1",
+        # This table includes an attribute "behaviour_source" to persist
+        # the source of the behaviour itself.
+        app_behaviour_table = self._create_dynamodb_table(
+            table_name="AppBehaviourTable",
             pk_name="app_id",
             pk_type=dynamodb.AttributeType.STRING,
         )
@@ -79,7 +78,7 @@ class KnowledgeManagerStack(AppCommonStack):
             name="ContextRetrieverLambda",
             handler="context_retriever.handler",
             environment={
-                "APP_ROLE_TABLE_NAME": app_role_table.table_name,
+                "APP_BEHAVIOUR_TABLE_NAME": app_behaviour_table.table_name,
                 "USER_LONG_TERM_MEMORY_TABLE_NAME": user_long_term_memory_table.table_name,
             },
         )
@@ -94,7 +93,7 @@ class KnowledgeManagerStack(AppCommonStack):
         )
 
         # Grant the Lambda function full access to the DynamoDB tables.
-        app_role_table.grant_full_access(context_retriever_lambda)
+        app_behaviour_table.grant_full_access(context_retriever_lambda)
         user_long_term_memory_table.grant_read_data(context_retriever_lambda)
         user_long_term_memory_table.grant_full_access(
             user_long_term_memory_updater_lambda
