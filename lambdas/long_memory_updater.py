@@ -66,7 +66,7 @@ class LongMemoryUpdater(BaseLambdaHandler):
         """
         Handle the incoming request to update the user's long-term memory.
 
-        :return: A dictionary containing the app role and the original payload.
+        :return: A dictionary containing the app behaviour and the original payload.
         :raises ValueError: If required parameters are missing.
         """
         # Extract required data from the event body
