@@ -51,7 +51,8 @@ class LongMemoryUpdater(BaseLambdaHandler):
         :return: A string detailing the assistant's behavior and task.
         """
         return """You are an AI assistant responsible for maintaining a concise and accurate summary of a conversation.
-        The summary should include ONLY ESSENTIAL facts, unresolved issues, user preferences, user personal information, or other important details that improve future interactions.
+        The summary should include ONLY ESSENTIAL facts, unresolved issues, user preferences, 
+        user personal information, or other important details that improve future interactions.
 
         ### Task:
         1. Determine if the new message is relevant to the current summary (e.g., it introduces new facts, updates existing details, or addresses unresolved issues).
@@ -126,7 +127,7 @@ class LongMemoryUpdater(BaseLambdaHandler):
         new_memory_content = ai_job_result["summary"]
 
         # Update the user's long-term memory in the database
-        last_memory_content = user_long_term_memory_bo.add_memory(
+        new_memory = user_long_term_memory_bo.add_memory(
             user_id=user_id, memory=new_memory_content
         )
 
@@ -134,8 +135,18 @@ class LongMemoryUpdater(BaseLambdaHandler):
             title=f"New memory updated for the user {user_id}", obj=new_memory_content
         )
 
-        # No return value is required as the function completes its updates
+        payload = {
+            "app_id": self.body.get("app_id"),
+            **new_memory.to_dict(),
+        }
 
+        # Publish the new memory to the custom event bus
+        self.publish_to_custom_event_bus(
+            message=payload,
+            detail_type="MemoryUpdated",
+        )
+
+        return payload
 
 def handler(event, context):
     """
