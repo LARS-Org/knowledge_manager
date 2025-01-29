@@ -137,7 +137,7 @@ class LongMemoryUpdater(BaseLambdaHandler):
         # Publish the new memory to the custom event bus
         self.publish_to_custom_event_bus(
             message=payload,
-            detail_type="MemoryUpdated",
+            detail_type="AppUserMemoryUpdated",
         )
 
         self.do_log(
