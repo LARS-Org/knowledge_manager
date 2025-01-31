@@ -17,6 +17,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "packages"))
 from app_common.app_utils import http_request
 from long_memory_bo import UserLongTermMemoryBO
 from app_common.base_lambda_handler import BaseLambdaHandler
+from app_common.exceptions_utils import NonUserFacingException
 
 
 class LongMemoryUpdater(BaseLambdaHandler):
@@ -120,7 +121,18 @@ class LongMemoryUpdater(BaseLambdaHandler):
         if "body" not in ai_job_result or ai_job_result["body"].get("output") is None:
             raise RuntimeError(f"Error while processing the message: {ai_job_result}")
 
-        ai_job_result = json.loads(ai_job_result["body"]["output"])
+        ai_response = ai_job_result["body"]["output"]
+
+        self.do_log(
+            title="AI response", obj=ai_response
+        )
+
+        try:
+            ai_job_result = json.loads(ai_response)
+        except Exception as e:
+            raise NonUserFacingException(
+                f"Error while processing the message: {ai_job_result}"
+            ) from e
 
         new_memory_content = ai_job_result["summary"]
 
