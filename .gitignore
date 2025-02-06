@@ -23,3 +23,4 @@ cdk.out
 urllib3/
 tests/**/urllib3/
 */urllib3/
+.vscode/
