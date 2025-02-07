@@ -23,3 +23,5 @@ cdk.out
 urllib3/
 tests/**/urllib3/
 */urllib3/
+# Ignore Visual Studio Code settings directory
+.vscode
